@@ -8,6 +8,7 @@ Bring back drawing rectangles on your wm desktop
 ```
 git clone https://github.com/dot1nt/srdt.git && cd srdt
 gcc -o srdt -lX11 main.c
+chmod +x srdt
 sudo cp srdt /usr/local/bin/
 srdt
 ```

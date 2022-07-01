@@ -91,9 +91,11 @@ int main() {
 
         switch (event.type) {
             case ButtonPress:
-                pressed = true;
-                start = true;
-                break;
+                if (event.xbutton.button == Button1) {
+                    pressed = true;
+                    start = true;
+                    break;
+                }
 
             case ButtonRelease:
                 XClearWindow(display, window);

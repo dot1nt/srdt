@@ -1,7 +1,8 @@
 #include <X11/Xlib.h>
-#include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define COLOR "#ffffff"
 
@@ -12,6 +13,27 @@ int screen;
 
 GC gc;
 
+void Click(Display *display, int button) {
+    XEvent event;
+    memset (&event, 0, sizeof (event));
+    event.xbutton.button = button;
+    event.xbutton.same_screen = 1;
+    event.type = ButtonPress;
+    
+    // Get to lowest window
+    event.xbutton.subwindow = DefaultRootWindow(display);
+    while (event.xbutton.subwindow) {
+        event.xbutton.window = event.xbutton.subwindow;
+        XQueryPointer(display, event.xbutton.window, &event.xbutton.root,
+                        &event.xbutton.subwindow, &event.xbutton.x_root,
+                        &event.xbutton.y_root, &event.xbutton.x, &event.xbutton.y,
+                        &event.xbutton.state);
+    }
+
+
+    XSendEvent(display, PointerWindow, true, ButtonPressMask, &event);
+    // no need to flush, XNextEvent does that
+}
 
 long GetColor(char name) {
     XColor color;
@@ -28,7 +50,7 @@ void Setup(void) {
     root = RootWindow(display, 0);
 }
 
-void CreateWindow(void) {
+Window CreateWindow(void) {
     XSetWindowAttributes wa;
 
     int width = DisplayWidth(display, screen);
@@ -50,6 +72,8 @@ void CreateWindow(void) {
 
     XSetForeground(display, gc, GetColor(*COLOR));
     XSetWindowBackgroundPixmap(display, window, ParentRelative);
+
+    return window;
 }
 
 void DrawRectangle(int x, int y, int sx, int sy) {
@@ -73,29 +97,39 @@ void DrawRectangle(int x, int y, int sx, int sy) {
 }
 
 int main() {
-
     Setup();
-    CreateWindow();
 
     bool pressed = false;
     bool start = false;
+    bool create_window = true;
 
     int sx;
     int sy;
 
     XEvent event;
+    Window window;
 
-    while (1)
-    {
+    while (1) {
+        if (create_window) {
+            window = CreateWindow();
+            create_window = false;
+        }
         XNextEvent(display, &event);
 
         switch (event.type) {
             case ButtonPress:
+                // Left click
                 if (event.xbutton.button == Button1) {
                     pressed = true;
                     start = true;
                     break;
                 }
+
+                // Not left click, pass on to background
+                create_window = true;
+                XDestroyWindow(display, window);
+                Click(display, event.xbutton.button);
+                break;
 
             case ButtonRelease:
                 XClearWindow(display, window);
